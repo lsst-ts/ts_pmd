@@ -31,7 +31,7 @@ import serial
 from .mock_server import MockSerial
 
 SIMULATION_SERIAL_PORT = "/dev/ttyUSB0"
-READ_TIMEOUT = 10.0  # [seconds]
+READ_TIMEOUT = 5.0  # [seconds]
 
 
 class MitutoyoComponent:
@@ -127,14 +127,15 @@ class MitutoyoComponent:
         self.log.debug(f"Message to be sent is {msg}")
         self.commander.write(f"{msg}\r".encode())
         self.log.debug("Message written")
-        try:
-            reply = self.commander.read_until(b"\r")
+        reply = self.commander.read_until(b"\r")
+        # Hub returns an empty string if a device is not read successfully
+        # instead of raising a timeout exception
+        if reply != b"":
             self.log.debug(f"Read successful in send_msg, got {reply}")
-            return reply
-        except TimeoutError:
+        else:
             reply = b"\r"
-            self.log.debug(f"Timed out on read in send_msg, returning {reply}")
-            return reply
+            self.log.debug("Channel timed out or empty")
+        return reply
 
     def get_slots_position(self):
         """Get all device slot positions.
@@ -163,9 +164,12 @@ class MitutoyoComponent:
             math.nan,
         ]
         for i, name in enumerate(self.names):
+            # Skip the channels that have nothing configured
             if name == "":
                 continue
             reply = self.send_msg(str(i + 1))
+            # an empty reading returns b'', unsure what b"\r" is but was
+            # here originally
             if reply != b"\r":
                 split_reply = reply.decode().split(":")
                 position[i] = float(split_reply[-1])

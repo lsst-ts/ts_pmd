@@ -25,7 +25,7 @@ class PMDCscTestCase(unittest.IsolatedAsyncioTestCase, salobj.BaseCscTestCase):
             initial_state=salobj.State.STANDBY, index=1, simulation_mode=1
         ):
             await self.check_standard_state_transitions(
-                enabled_commands=[], settingsToApply="micrometer"
+                enabled_commands=[], settingsToApply="current"
             )
 
     async def test_bin_script(self):
@@ -40,7 +40,7 @@ class PMDCscTestCase(unittest.IsolatedAsyncioTestCase, salobj.BaseCscTestCase):
             initial_state=salobj.State.ENABLED,
             index=1,
             simulation_mode=1,
-            settings_to_apply="micrometer",
+            settings_to_apply="current",
         ):
             position = await self.remote.tel_position.aget()
             self.assertTrue(not math.isnan(position.position[0]))
@@ -57,13 +57,13 @@ class PMDCscTestCase(unittest.IsolatedAsyncioTestCase, salobj.BaseCscTestCase):
             initial_state=salobj.State.DISABLED,
             index=1,
             simulation_mode=1,
-            settings_to_apply="micrometer",
+            settings_to_apply="current",
         ):
             await self.assert_next_sample(
                 topic=self.remote.evt_metadata,
                 hubType="Mitutoyo",
-                location="Office",
-                names="Dial Gage,,,,,,,",
+                location="AT",
+                names="Dial Gauge 1,Dial Gauge 2,Dial Gauge 3,,,,,",
                 units="um",
             )
 

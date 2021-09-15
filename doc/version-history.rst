@@ -4,6 +4,11 @@
 Version History
 ===============
 
+v0.2.1
+======
+* Updated unit tests to use the correct configuration file name
+* Fixed when a device fails to report its position that it returns an empty string instead of reporting a timeout exception
+
 v0.2.0
 ======
 * Added log handling over DDS
