@@ -1,0 +1,4 @@
+# Labels for recommended settings; a dict of label: config_file
+current: "metadata_test.yaml"
+metadata_test: "metadata_test.yaml"
+

@@ -1,7 +1,18 @@
 import unittest
 import math
+import pathlib
+import logging
 
 from lsst.ts import salobj, pmd
+
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+
+TEST_CONFIG_DIR = pathlib.Path(__file__).parents[1].joinpath("tests", "data", "config")
+
+CONFIGS = [
+    "metadata_test.yaml",
+]
 
 
 class PMDCscTestCase(unittest.IsolatedAsyncioTestCase, salobj.BaseCscTestCase):
@@ -9,13 +20,14 @@ class PMDCscTestCase(unittest.IsolatedAsyncioTestCase, salobj.BaseCscTestCase):
         self,
         index,
         initial_state,
-        config_dir=None,
+        config_dir=TEST_CONFIG_DIR,
         simulation_mode=0,
         settings_to_apply="",
     ):
         return pmd.PMDCsc(
             initial_state=initial_state,
             index=index,
+            config_dir=TEST_CONFIG_DIR,
             simulation_mode=simulation_mode,
             settings_to_apply=settings_to_apply,
         )
@@ -44,11 +56,11 @@ class PMDCscTestCase(unittest.IsolatedAsyncioTestCase, salobj.BaseCscTestCase):
         ):
             position = await self.remote.tel_position.aget()
             self.assertTrue(not math.isnan(position.position[0]))
-            self.assertTrue(math.isnan(position.position[1]))
-            self.assertTrue(math.isnan(position.position[2]))
-            self.assertTrue(math.isnan(position.position[3]))
+            self.assertTrue(not math.isnan(position.position[1]))
+            self.assertTrue(not math.isnan(position.position[2]))
+            self.assertTrue(not math.isnan(position.position[3]))
             self.assertTrue(math.isnan(position.position[4]))
-            self.assertTrue(math.isnan(position.position[5]))
+            self.assertTrue(not math.isnan(position.position[5]))
             self.assertTrue(math.isnan(position.position[6]))
             self.assertTrue(math.isnan(position.position[7]))
 
@@ -56,14 +68,17 @@ class PMDCscTestCase(unittest.IsolatedAsyncioTestCase, salobj.BaseCscTestCase):
         async with self.make_csc(
             initial_state=salobj.State.DISABLED,
             index=1,
+            config_dir=TEST_CONFIG_DIR,
             simulation_mode=1,
             settings_to_apply="current",
         ):
+            tmp = await self.remote.evt_metadata.aget()
+            logger.debug(f"tmp is {tmp}")
             await self.assert_next_sample(
                 topic=self.remote.evt_metadata,
                 hubType="Mitutoyo",
                 location="AT",
-                names="Dial Gauge 1,Dial Gauge 2,Dial Gauge 3,,,,,",
+                names="micrometer1,micrometer2,micrometer3,micrometer4,,micrometer5,,",
                 units="um",
             )
 

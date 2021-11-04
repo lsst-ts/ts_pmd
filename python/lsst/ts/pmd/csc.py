@@ -22,12 +22,17 @@
 __all__ = ["PMDCsc"]
 
 import asyncio
+import traceback
 
 from lsst.ts import salobj
 
 from . import __version__
 from .component import MitutoyoComponent
 from .config_schema import CONFIG_SCHEMA
+
+# List of error codes
+TELEMETRY_LOOP_FAILED = 2
+HARDWARE_CONNECTION_FAILED = 1
 
 
 class PMDCsc(salobj.ConfigurableCsc):
@@ -124,7 +129,11 @@ class PMDCsc(salobj.ConfigurableCsc):
         except Exception as e:
             err_msg = f"Telemetry loop failed. Last position value was {position}"
             self.log.exception(err_msg)
-            self.fault(2, report=f"{err_msg}: {e}")
+            self.fault(
+                TELEMETRY_LOOP_FAILED,
+                report=f"{err_msg}: {e}",
+                traceback=traceback.format_exc(),
+            )
 
     async def handle_summary_state(self):
         """Handle the summary states."""
@@ -135,7 +144,7 @@ class PMDCsc(salobj.ConfigurableCsc):
                     self.component.connect()
                 except Exception as e:
                     self.log.exception(e)
-                    self.fault(1, e.args)
+                    self.fault(HARDWARE_CONNECTION_FAILED, e.args)
             if self.telemetry_task.done():
                 self.telemetry_task = asyncio.create_task(self.telemetry())
         else:
