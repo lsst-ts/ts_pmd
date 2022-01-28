@@ -58,6 +58,7 @@ class MitutoyoComponent:
         self.simulation_mode = bool(simulation_mode)
         self.names = ["", "", "", "", "", "", "", ""]
         self.read_error_count = 0
+        self.commander = None
         if log is None:
             self.log = logging.getLogger(type(self).__name__)
         else:
@@ -83,10 +84,13 @@ class MitutoyoComponent:
         self.log.debug("Connection to device completed")
 
     def disconnect(self):
-        """Disconnect from the device."""
-        self.log.debug("Disconnecting serial device")
-        self.commander.close()
-        self.connected = False
+        """Disconnect from the device. This gets called whenever going to 
+        fault state as well."""
+
+        if self.commander is not None:
+            self.log.debug("Disconnecting serial device")
+            self.commander.close()
+            self.connected = False
 
     def configure(self, config):
         """Configure the device.
