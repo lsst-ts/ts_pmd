@@ -10,3 +10,6 @@ hub_config:
       - "micrometer5"
     location: "AT"
     units: "um"
+    telemetry_interval: 1
+    serial_port: "/dev/ttyUSB0"
+    hub_type: "Mitutoyo"

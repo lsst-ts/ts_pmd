@@ -24,7 +24,7 @@ __all__ = ["PMDCsc"]
 import asyncio
 import traceback
 
-from lsst.ts import salobj
+from lsst.ts import salobj, utils
 
 from . import __version__
 from .component import MitutoyoComponent
@@ -69,7 +69,7 @@ class PMDCsc(salobj.ConfigurableCsc):
         simulation_mode=0,
         initial_state=salobj.State.STANDBY,
         config_dir=None,
-        settings_to_apply="",
+        override="",
     ):
 
         super().__init__(
@@ -79,9 +79,9 @@ class PMDCsc(salobj.ConfigurableCsc):
             initial_state=initial_state,
             simulation_mode=simulation_mode,
             config_schema=CONFIG_SCHEMA,
-            settings_to_apply=settings_to_apply,
+            override=override,
         )
-        self.telemetry_task = salobj.make_done_future()
+        self.telemetry_task = utils.make_done_future()
         self.telemetry_interval = 1
         self.index = index
         self.component = None
@@ -101,7 +101,7 @@ class PMDCsc(salobj.ConfigurableCsc):
         if config.hub_config[self.index - 1]["hub_type"] == "Mitutoyo":
             self.component = MitutoyoComponent(self.simulation_mode, log=self.log)
         self.component.configure(config.hub_config[self.index - 1])
-        self.evt_metadata.set_put(
+        await self.evt_metadata.set_write(
             hubType=self.component.hub_type,
             location=self.component.location,
             names=",".join(self.component.names),
@@ -114,6 +114,7 @@ class PMDCsc(salobj.ConfigurableCsc):
             self.log.debug("Begin sending telemetry")
             position = None
             loop = asyncio.get_event_loop()
+            breakpoint
             while True:
                 position = await loop.run_in_executor(
                     None, self.component.get_slots_position
@@ -121,7 +122,7 @@ class PMDCsc(salobj.ConfigurableCsc):
                 self.log.debug(
                     "telemetry_loop received position data, now publishing event"
                 )
-                self.tel_position.set_put(position=position)
+                await self.tel_position.set_write(position=position)
                 position = None  # reset so it's easier to debug exceptions
                 await asyncio.sleep(self.telemetry_interval)
         except asyncio.CancelledError:
@@ -129,7 +130,7 @@ class PMDCsc(salobj.ConfigurableCsc):
         except Exception as e:
             err_msg = f"Telemetry loop failed. Last position value was {position}"
             self.log.exception(err_msg)
-            self.fault(
+            await self.fault(
                 TELEMETRY_LOOP_FAILED,
                 report=f"{err_msg}: {e}",
                 traceback=traceback.format_exc(),
@@ -144,7 +145,7 @@ class PMDCsc(salobj.ConfigurableCsc):
                     self.component.connect()
                 except Exception as e:
                     self.log.exception(e)
-                    self.fault(HARDWARE_CONNECTION_FAILED, e.args)
+                    await self.fault(HARDWARE_CONNECTION_FAILED, e.args)
             if self.telemetry_task.done():
                 self.telemetry_task = asyncio.create_task(self.telemetry())
         else:
