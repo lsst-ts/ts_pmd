@@ -7,7 +7,7 @@ CONFIG_SCHEMA = yaml.safe_load(
     """
 $schema: http://json-schema.org/draft-07/schema#
 $id: https://github.com/lsst-ts/ts_pmd/blob/master/schema/PMDevice.yaml
-title: PMD v1
+title: PMD v2
 description: Schema for PMD configuration files
 definitions:
   hub_specific_schema:
