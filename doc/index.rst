@@ -22,7 +22,7 @@ PMD
 Overview
 ========
 
-:ref:`Find the Developer and Product Owner <ts_xml:index:master-csc-table:PMD>`.
+:ref:`Find the Developer and Product Owner <ts_xml:index:csc-table:PMD>`.
 
 .. note:: If you are interested in viewing other branches of this repository append a `/v` to the end of the url link. For example `https://ts-pmd.lsst.io/v/`
 
