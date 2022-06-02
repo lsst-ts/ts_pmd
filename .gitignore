@@ -11,6 +11,7 @@ config.log
 
 #Setuptools
 *.egg-info
+build
 
 # Built by sconsUtils
 version.py
