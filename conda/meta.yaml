@@ -7,6 +7,9 @@ source:
   path: ../
 
 build:
+  noarch: generic
+  entry_points:
+    - run_pmd = lsst.ts.pmd.cli:execute_csc
   script: python -m pip install --no-deps --ignore-installed .
   script_env:
     - PATH
