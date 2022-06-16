@@ -4,6 +4,14 @@
 Version History
 ===============
 
+v0.4.0
+======
+* Make package noarch
+
+v0.3.0
+======
+* Updated CSC to use salobj 7
+
 v0.2.1
 ======
 * Updated unit tests to use the correct configuration file name

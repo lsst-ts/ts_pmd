@@ -25,6 +25,7 @@ import math
 import pty
 import os
 import logging
+import time
 
 import serial
 
@@ -56,6 +57,7 @@ class MitutoyoComponent:
         self.connected = False
         self.simulation_mode = bool(simulation_mode)
         self.names = ["", "", "", "", "", "", "", ""]
+        self.read_error_count = 0
         if log is None:
             self.log = logging.getLogger(type(self).__name__)
         else:
@@ -127,6 +129,8 @@ class MitutoyoComponent:
         self.log.debug(f"Message to be sent is {msg}")
         self.commander.write(f"{msg}\r".encode())
         self.log.debug("Message written")
+        # It seems there might be a bit of a lag, so adding a sleep here.
+        time.sleep(0.1)
         reply = self.commander.read_until(b"\r")
         # Hub returns an empty string if a device is not read successfully
         # instead of raising a timeout exception
@@ -175,4 +179,72 @@ class MitutoyoComponent:
                 position[i] = float(split_reply[-1])
             else:
                 position[i] = math.nan
-        return position
+                # Try to recover multiplexer
+                self.log.error(
+                    f"Sensor {name} is not reading. {self.read_error_count} continuous read errors reported"
+                )
+
+                if self.read_error_count == 2 and self.multiplexer_recovery():
+                    self.log.info("Multiplexer recovered")
+                    self.read_error_count = 0
+                else:
+                    self.read_error_count += 1
+                    self.log.error(
+                        "Multiplexer recovery failed "
+                        f"{self.read_error_count} times"
+                        " continuously"
+                    )
+
+        if self.read_error_count <= 3:
+            return position
+        else:
+            err_msg = "Three continuous reads of sensor ended in error."
+            self.log.exception(err_msg)
+            raise IOError(err_msg)
+
+    def multiplexer_recovery(self):
+        """Recovery of multiplexer when a sensor drops out.
+        This is a work around for a faulty multiplexer which appears to drop
+        the signal of devices in plugs 5-8.
+
+        Raises
+        ------
+        Exception
+            Raised when the device is not connected.
+
+        Returns
+        -------
+        success : `boolean`
+            Indicates that reconnection was successful.
+        """
+
+        if not self.connected:
+            raise Exception("Not connected")
+
+        # enter the config interface
+        self.commander.write("SPC".encode())
+        time.sleep(5)
+        reply = self.commander.read_all().decode()
+        self.log.debug(f"Multiplexer SPC response is: {reply}")
+        self.commander.write("QU".encode())
+        time.sleep(2)
+        # read out the buffer
+        reply3 = self.commander.read_all().decode()
+        self.log.debug(f"reply3 is: {reply3}")
+
+        # now check the sensors
+        positions = self.get_slots_position()
+        success = True
+        for i, name in enumerate(self.names):
+            # Skip the channels that have nothing configured
+            if name == "":
+                continue
+            elif positions[i]:
+                self.log.debug(f"Sensor {i} = {positions[i]:0.3f}")
+            else:
+                self.log.error(
+                    f"Sensor {i} returned a blank string. " "Multiplexer reset failed."
+                )
+                success = False
+
+        return success

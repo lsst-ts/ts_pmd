@@ -1,2 +1,2 @@
 @Library('JenkinsShared')_
-CondaPipeline(["ts_config_ocs"], "ts-pmd", "lsst.ts.pmd")
+CondaPipeline(["ts_config_ocs"], "ts-pmd", "lsst.ts.pmd", "noarch")

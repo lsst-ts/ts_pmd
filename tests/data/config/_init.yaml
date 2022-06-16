@@ -1,0 +1,15 @@
+# This is a config file used in the test_metadata unit test
+hub_config:
+  - sal_index: 1
+    devices:
+      - "micrometer1"
+      - "micrometer2"
+      - "micrometer3"
+      - "micrometer4"
+      - ""
+      - "micrometer5"
+    location: "AT"
+    units: "um"
+    telemetry_interval: 1
+    serial_port: "/dev/ttyUSB0"
+    hub_type: "Mitutoyo"
