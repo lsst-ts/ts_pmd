@@ -29,6 +29,7 @@ from lsst.ts import salobj, utils
 from . import __version__
 from .component import MitutoyoComponent
 from .config_schema import CONFIG_SCHEMA
+from .mock_server import MockServer
 
 # List of error codes
 TELEMETRY_LOOP_FAILED = 2
@@ -85,6 +86,7 @@ class PMDCsc(salobj.ConfigurableCsc):
         self.telemetry_interval = 1
         self.index = index
         self.component = None
+        self.simulator = None
 
     async def configure(self, config):
         """Configure the CSC.
@@ -113,12 +115,9 @@ class PMDCsc(salobj.ConfigurableCsc):
         try:
             self.log.debug("Begin sending telemetry")
             position = None
-            loop = asyncio.get_event_loop()
             breakpoint
             while True:
-                position = await loop.run_in_executor(
-                    None, self.component.get_slots_position
-                )
+                position = await self.component.get_slots_position()
                 self.log.debug(
                     "telemetry_loop received position data, now publishing event"
                 )
@@ -139,12 +138,17 @@ class PMDCsc(salobj.ConfigurableCsc):
     async def handle_summary_state(self):
         """Handle the summary states."""
         if self.disabled_or_enabled:
+            if self.simulation_mode and self.simulator is None:
+                self.simulator = MockServer()
+                await self.simulator.start_task
             if not self.component.connected:
                 try:
                     self.log.debug("in handle_summary_state: connecting")
-                    self.component.connect()
+                    await self.component.connect()
                 except Exception as e:
-                    self.log.exception(e)
+                    self.log.error(
+                        f"Connection failed. {self.component.host=} {self.component.port=}: {e!r}"
+                    )
                     await self.fault(HARDWARE_CONNECTION_FAILED, e.args)
             if self.telemetry_task.done():
                 self.telemetry_task = asyncio.create_task(self.telemetry())
@@ -154,15 +158,21 @@ class PMDCsc(salobj.ConfigurableCsc):
             )
             self.telemetry_task.cancel()
             if self.component is not None:
-                self.component.disconnect()
+                await self.component.disconnect()
                 self.component = None
+            if self.simulator is not None:
+                await self.simulator.close()
+                self.simulator = None
 
     async def close_tasks(self):
         """Close the CSC for cleanup."""
         await super().close_tasks()
         self.telemetry_task.cancel()
         if self.component is not None:
-            self.component.disconnect()
+            await self.component.disconnect()
+        if self.simulator is not None:
+            await self.simulator.close()
+            self.simulator = None
 
     @staticmethod
     def get_config_pkg():

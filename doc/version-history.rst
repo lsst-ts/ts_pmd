@@ -4,6 +4,10 @@
 Version History
 ===============
 
+v0.5.0
+======
+* Update PMD to use tcpip
+
 v0.4.0
 ======
 * Make package noarch

@@ -21,17 +21,13 @@
 
 __all__ = ["MitutoyoComponent"]
 
-import math
-import pty
-import os
+import asyncio
 import logging
+import math
 import time
 
-import serial
+from lsst.ts import tcpip
 
-from .mock_server import MockSerial
-
-SIMULATION_SERIAL_PORT = "/dev/ttyUSB0"
 READ_TIMEOUT = 5.0  # [seconds]
 
 
@@ -58,35 +54,39 @@ class MitutoyoComponent:
         self.simulation_mode = bool(simulation_mode)
         self.names = ["", "", "", "", "", "", "", ""]
         self.read_error_count = 0
+        self.reader = None
+        self.writer = None
+        self.lock = asyncio.Lock()
+        self.long_timeout = 30
+        self.timeout = 5
         if log is None:
             self.log = logging.getLogger(type(self).__name__)
         else:
             self.log = log.getChild(type(self).__name__)
 
-    def connect(self):
+    async def connect(self):
         """Connect to the device."""
-        if not self.simulation_mode:
-            try:
-                self.log.debug("Trying to open serial connection")
-                self.commander = serial.Serial(
-                    port=self.serial_port, timeout=READ_TIMEOUT
-                )
-            except Exception as e:
-                self.log.exception(e)
-                raise
-        else:
-            main, reader = pty.openpty()
-            self.log.debug("Creating MOCK serial connection")
-            self.commander = MockSerial(os.ttyname(main))
+        async with self.lock:
+            connect_task = asyncio.open_connection(host=self.host, port=int(self.port))
+            self.reader, self.writer = await asyncio.wait_for(
+                connect_task, timeout=self.long_timeout
+            )
+            self.connected = True
+            self.log.debug("Connection to device completed")
 
-        self.connected = True
-        self.log.debug("Connection to device completed")
-
-    def disconnect(self):
+    async def disconnect(self):
         """Disconnect from the device."""
-        self.log.debug("Disconnecting serial device")
-        self.commander.close()
-        self.connected = False
+        async with self.lock:
+            if self.writer is None:
+                return
+            try:
+                await tcpip.close_stream_writer(self.writer)
+            except Exception:
+                self.log.exception("Disconnect failed, continuing")
+            finally:
+                self.writer = None
+                self.reader = None
+                self.connected = False
 
     def configure(self, config):
         """Configure the device.
@@ -101,11 +101,12 @@ class MitutoyoComponent:
         self.hub_type = config["hub_type"]
         self.units = config["units"]
         self.location = config["location"]
-        self.serial_port = config["serial_port"]
+        self.host = config["host"]
+        self.port = config["port"]
 
         self.log.debug("Configuration completed")
 
-    def send_msg(self, msg):
+    async def send_msg(self, msg):
         """Send a message to the device.
 
         Parameters
@@ -115,7 +116,7 @@ class MitutoyoComponent:
 
         Raises
         ------
-        Exception
+        RuntimeError
             Raised when the device is not connected.
 
         Returns
@@ -124,24 +125,31 @@ class MitutoyoComponent:
             The reply from the device.
         """
 
-        if not self.connected:
-            raise Exception("Not connected")
-        self.log.debug(f"Message to be sent is {msg}")
-        self.commander.write(f"{msg}\r".encode())
-        self.log.debug("Message written")
-        # It seems there might be a bit of a lag, so adding a sleep here.
-        time.sleep(0.1)
-        reply = self.commander.read_until(b"\r")
-        # Hub returns an empty string if a device is not read successfully
-        # instead of raising a timeout exception
-        if reply != b"":
-            self.log.debug(f"Read successful in send_msg, got {reply}")
-        else:
-            reply = b"\r"
-            self.log.debug("Channel timed out or empty")
-        return reply
+        async with self.lock:
+            if not self.connected:
+                raise RuntimeError("Not connected")
+            self.log.debug(f"Message to be sent is {msg}")
+            msg = msg + "\r"
+            msg = msg.encode()
+            if self.writer is not None:
+                self.writer.write(msg)
+                await self.writer.drain()
+            self.log.debug("Message written")
+            # It seems there might be a bit of a lag, so adding a sleep here.
+            time.sleep(0.1)
+            reply = await asyncio.wait_for(
+                self.reader.readuntil(b"\r"), timeout=self.timeout
+            )
+            # Hub returns an empty string if a device is not read successfully
+            # instead of raising a timeout exception
+            if reply != b"":
+                self.log.debug(f"Read successful in send_msg, got {reply}")
+            else:
+                reply = b"\r"
+                self.log.debug("Channel timed out or empty")
+            return reply
 
-    def get_slots_position(self):
+    async def get_slots_position(self):
         """Get all device slot positions.
 
         Raises
@@ -171,7 +179,7 @@ class MitutoyoComponent:
             # Skip the channels that have nothing configured
             if name == "":
                 continue
-            reply = self.send_msg(str(i + 1))
+            reply = await self.send_msg(str(i + 1))
             # an empty reading returns b'', unsure what b"\r" is but was
             # here originally
             if reply != b"\r":
@@ -202,14 +210,14 @@ class MitutoyoComponent:
             self.log.exception(err_msg)
             raise IOError(err_msg)
 
-    def multiplexer_recovery(self):
+    async def multiplexer_recovery(self):
         """Recovery of multiplexer when a sensor drops out.
         This is a work around for a faulty multiplexer which appears to drop
         the signal of devices in plugs 5-8.
 
         Raises
         ------
-        Exception
+        RuntimeError
             Raised when the device is not connected.
 
         Returns
@@ -219,21 +227,18 @@ class MitutoyoComponent:
         """
 
         if not self.connected:
-            raise Exception("Not connected")
+            raise RuntimeError("Not connected")
 
         # enter the config interface
-        self.commander.write("SPC".encode())
-        time.sleep(5)
-        reply = self.commander.read_all().decode()
+        reply = await self.send_msg("SPC")
+        await asyncio.sleep(5)
         self.log.debug(f"Multiplexer SPC response is: {reply}")
-        self.commander.write("QU".encode())
-        time.sleep(2)
-        # read out the buffer
-        reply3 = self.commander.read_all().decode()
-        self.log.debug(f"reply3 is: {reply3}")
+        reply3 = self.send_msg("QU")
+        await asyncio.sleep(2)
+        self.log.debug(f"{reply3=}")
 
         # now check the sensors
-        positions = self.get_slots_position()
+        positions = await self.get_slots_position()
         success = True
         for i, name in enumerate(self.names):
             # Skip the channels that have nothing configured
