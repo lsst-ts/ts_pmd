@@ -1,9 +1,8 @@
 import unittest
-from lsst.ts.pmd.config_schema import CONFIG_SCHEMA
 
 import jsonschema
-
 from lsst.ts import salobj
+from lsst.ts.pmd.config_schema import CONFIG_SCHEMA
 
 
 class ValidationTestCase(unittest.TestCase):
@@ -20,7 +19,8 @@ class ValidationTestCase(unittest.TestCase):
                     "devices": ["Dial Gage"],
                     "units": "um",
                     "location": "Office",
-                    "serial_port": "/dev/ttyUSB0",
+                    "host": "127.0.0.1",
+                    "port": 9999,
                     "hub_type": "Mitutoyo",
                 }
             ]
@@ -40,7 +40,8 @@ class ValidationTestCase(unittest.TestCase):
                     "devices": ["Dial Gage"],
                     "units": "um",
                     "location": "Office",
-                    "serial_port": "/dev/ttyUSB0",
+                    "host": "127.0.0.1",
+                    "port": 9999,
                     "hub_type": "Mitutoyo",
                 }
             ]
@@ -53,7 +54,8 @@ class ValidationTestCase(unittest.TestCase):
                     "devices": 1,
                     "units": "fff",
                     "location": 1,
-                    "serial_port": 12,
+                    "host": 12,
+                    "port": "ninety-nine",
                     "hub_type": "Sandwich",
                 }
             ]
