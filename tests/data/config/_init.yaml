@@ -11,5 +11,6 @@ hub_config:
     location: "AT"
     units: "um"
     telemetry_interval: 1
-    serial_port: "/dev/ttyUSB0"
+    host: "127.0.0.1"
+    port: 9999
     hub_type: "Mitutoyo"

@@ -2,12 +2,11 @@ __all__ = ["CONFIG_SCHEMA"]
 
 import yaml
 
-
 CONFIG_SCHEMA = yaml.safe_load(
     """
 $schema: http://json-schema.org/draft-07/schema#
 $id: https://github.com/lsst-ts/ts_pmd/blob/master/schema/PMDevice.yaml
-title: PMD v2
+title: PMD v3
 description: Schema for PMD configuration files
 definitions:
   hub_specific_schema:
@@ -33,14 +32,17 @@ definitions:
       location:
         type: string
         description: The location of the device.
-      serial_port:
+      host:
         type: string
-        description: The serial_port that the device is connected to.
+        description: The IP Address or host of the terminal server.
+      port:
+        type: number
+        description: The port of the ip address of the terminal server
       hub_type:
         type: string
         description: The brand/type of device hub.
         enum: ["Mitutoyo"]
-    required: [telemetry_interval, devices, units,  location, serial_port, hub_type]
+    required: [telemetry_interval, devices, units,  location, host, port, hub_type]
     additionalProperties: false
 type: object
 properties:

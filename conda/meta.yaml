@@ -10,7 +10,7 @@ build:
   noarch: generic
   entry_points:
     - run_pmd = lsst.ts.pmd.cli:execute_csc
-  script: python -m pip install --no-deps --ignore-installed .
+  script: {{ PYTHON }} -m pip install --no-deps --ignore-installed .
   script_env:
     - PATH
     - PYTHONPATH
@@ -27,25 +27,31 @@ test:
     - ts-dds
     - ts-idl {{ idl_version }}
     - ts-salobj {{ salobj_version }}
+    - ts-utils
+    - ts-tcpip
   source_files:
     - python
     - bin
     - tests
     - setup.cfg
   commands:
-    - py.test
+    - pytest
 
 requirements:
   host:
-    - python
+    - python {{ python }}
     - pip
     - setuptools_scm
     - setuptools
-    - pytest-runner
+  build:
+    - python {{ python }}
+    - setuptools_scm
+    - setuptools
+    - ts-conda-build =0.3
   run:
-    - python
+    - python {{ python }}
     - setuptools
     - setuptools_scm
     - ts-salobj
     - ts-idl
-    - pyserial
+    - ts-tcpip
