@@ -53,7 +53,6 @@ class MitutoyoComponent:
         self.connected = False
         self.simulation_mode = bool(simulation_mode)
         self.names = ["", "", "", "", "", "", "", ""]
-        self.read_error_count = 0
         self.reader = None
         self.writer = None
         self.lock = asyncio.Lock()
@@ -149,8 +148,10 @@ class MitutoyoComponent:
                 self.log.debug("Channel timed out or empty")
             return reply
 
-    async def get_slots_position(self):
+    async def get_channel_position(self):
         """Get all device slot positions.
+
+        Does not attempt to recover the multiplexor.
 
         Raises
         ------
@@ -159,59 +160,37 @@ class MitutoyoComponent:
 
         Returns
         -------
-        position : `list` of `float`
+        positions : `list` of `float`
             An array of values from the devices.
+        isok : `bool`
+            Are all the values there?
         """
 
         if not self.connected:
             raise Exception("Not connected")
-        position = [
-            math.nan,
-            math.nan,
-            math.nan,
-            math.nan,
-            math.nan,
-            math.nan,
-            math.nan,
-            math.nan,
-        ]
+        positions = [math.nan] * len(self.names)
         for i, name in enumerate(self.names):
             # Skip the channels that have nothing configured
             if name == "":
                 continue
             reply = await self.send_msg(str(i + 1))
-            # an empty reading returns b'', unsure what b"\r" is but was
-            # here originally
             if reply != b"\r":
                 split_reply = reply.decode().split(":")
-                position[i] = float(split_reply[-1])
+                positions[i] = float(split_reply[-1])
+                self.log.debug(f"{positions=}")
             else:
-                position[i] = math.nan
-                # Try to recover multiplexer
-                self.log.error(
-                    f"Sensor {name} is not reading. {self.read_error_count} continuous read errors reported"
-                )
+                # if multiplexer_recovery succeeds return position
+                # else raise IOError
+                isok = False
+                return positions, isok
+        # Return positions if successful with no recovery needed.
+        isok = True
+        return positions, isok
 
-                if self.read_error_count == 2 and self.multiplexer_recovery():
-                    self.log.info("Multiplexer recovered")
-                    self.read_error_count = 0
-                else:
-                    self.read_error_count += 1
-                    self.log.error(
-                        "Multiplexer recovery failed "
-                        f"{self.read_error_count} times"
-                        " continuously"
-                    )
-
-        if self.read_error_count <= 3:
-            return position
-        else:
-            err_msg = "Three continuous reads of sensor ended in error."
-            self.log.exception(err_msg)
-            raise IOError(err_msg)
-
-    async def multiplexer_recovery(self):
+    async def determine_channel_positions(self, max_resets=3):
         """Recovery of multiplexer when a sensor drops out.
+
+        Read slot positions with reseting the multiplexer if value fails.
         This is a work around for a faulty multiplexer which appears to drop
         the signal of devices in plugs 5-8.
 
@@ -222,34 +201,29 @@ class MitutoyoComponent:
 
         Returns
         -------
-        success : `boolean`
+        positions : `float`
+            The list of micrometer values.
+        isok : `boolean`
             Indicates that reconnection was successful.
         """
 
         if not self.connected:
             raise RuntimeError("Not connected")
 
-        # enter the config interface
-        reply = await self.send_msg("SPC")
-        await asyncio.sleep(5)
-        self.log.debug(f"Multiplexer SPC response is: {reply}")
-        reply3 = self.send_msg("QU")
-        await asyncio.sleep(2)
-        self.log.debug(f"{reply3=}")
-
-        # now check the sensors
-        positions = await self.get_slots_position()
-        success = True
-        for i, name in enumerate(self.names):
-            # Skip the channels that have nothing configured
-            if name == "":
-                continue
-            elif positions[i]:
-                self.log.debug(f"Sensor {i} = {positions[i]:0.3f}")
-            else:
-                self.log.error(
-                    f"Sensor {i} returned a blank string. " "Multiplexer reset failed."
-                )
-                success = False
-
-        return success
+        # While read_error_count is less than or equal to 3 and not success
+        # Continue to recover.
+        # If success is True, break the loop.
+        if max_resets < 0:
+            raise ValueError("max_resets must be greater than or equal to 0.")
+        for ntries in range(max_resets + 1):
+            positions, isok = await self.get_channel_position()
+            if isok:
+                break
+            # enter the config interface
+            reply = await self.send_msg("SPC")
+            await asyncio.sleep(5)
+            self.log.debug(f"Multiplexer SPC response is: {reply}")
+            reply3 = self.send_msg("QU")
+            await asyncio.sleep(2)
+            self.log.debug(f"{reply3=}")
+        return positions, isok

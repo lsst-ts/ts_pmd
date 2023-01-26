@@ -29,11 +29,8 @@ from lsst.ts import salobj, utils
 from . import __version__
 from .component import MitutoyoComponent
 from .config_schema import CONFIG_SCHEMA
+from .enums import ErrorCode
 from .mock_server import MockServer
-
-# List of error codes
-TELEMETRY_LOOP_FAILED = 2
-HARDWARE_CONNECTION_FAILED = 1
 
 
 class PMDCsc(salobj.ConfigurableCsc):
@@ -117,7 +114,9 @@ class PMDCsc(salobj.ConfigurableCsc):
             position = None
             breakpoint
             while True:
-                position = await self.component.get_slots_position()
+                position, isok = await self.component.determine_channel_positions()
+                if not isok:
+                    raise IOError("Multiplexer not recovered.")
                 self.log.debug(
                     "telemetry_loop received position data, now publishing event"
                 )
@@ -130,7 +129,7 @@ class PMDCsc(salobj.ConfigurableCsc):
             err_msg = f"Telemetry loop failed. Last position value was {position}"
             self.log.exception(err_msg)
             await self.fault(
-                TELEMETRY_LOOP_FAILED,
+                ErrorCode.CHANNEL_RECOVERY_FAILED,
                 report=f"{err_msg}: {e}",
                 traceback=traceback.format_exc(),
             )
@@ -149,7 +148,7 @@ class PMDCsc(salobj.ConfigurableCsc):
                     self.log.error(
                         f"Connection failed. {self.component.host=} {self.component.port=}: {e!r}"
                     )
-                    await self.fault(HARDWARE_CONNECTION_FAILED, e.args)
+                    await self.fault(ErrorCode.HARDWARE_CONNECTION_FAILED, e.args)
             if self.telemetry_task.done():
                 self.telemetry_task = asyncio.create_task(self.telemetry())
         else:

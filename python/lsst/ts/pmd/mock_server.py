@@ -51,7 +51,7 @@ class MockServer(tcpip.OneClientServer):
             self.writer.write(reply)
             await self.writer.drain()
 
-    def connect_callback(self, server):
+    async def connect_callback(self, server):
         self.read_loop_task.cancel()
         if server.connected:
             self.read_loop_task = asyncio.create_task(self.cmd_loop())
@@ -75,6 +75,8 @@ class MockMitutoyoHub:
         if len(self.positions) != 8:
             raise Exception("positions must contain exactly 8 values.")
         self.commands = {str(i): self.get_position for i in range(1, 9)}
+        self.commands["SPC"] = self.multiplexer_recovery
+        self.commands["QU"] = self.multiplexer_recovery
         self.log = logging.getLogger(__name__)
         self.log.info(self.commands)
 
@@ -97,3 +99,6 @@ class MockMitutoyoHub:
             return f"{index}:{slot_position:+f}\r"
         else:
             return "\r"
+
+    def multiplexer_recovery(self):
+        return ""
