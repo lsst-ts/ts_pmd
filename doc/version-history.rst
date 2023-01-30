@@ -4,6 +4,10 @@
 Version History
 ===============
 
+v0.5.1
+======
+* Fixed PMD not faulting after 3 times
+
 v0.5.0
 ======
 * Update PMD to use tcpip
