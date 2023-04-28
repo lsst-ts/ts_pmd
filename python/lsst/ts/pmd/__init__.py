@@ -24,8 +24,8 @@ try:
 except ImportError:
     __version__ = "?"
 
-from .csc import *
-from .component import *
-from .mock_server import *
-from .config_schema import *
 from .cli import *
+from .component import *
+from .config_schema import *
+from .csc import *
+from .mock_server import *

@@ -2,7 +2,6 @@
 
 from documenteer.conf.pipelinespkg import *  # noqa
 
-
 project = "ts_pmd"  # noqa
 html_theme_options["logotext"] = project  # noqa
 html_title = project  # noqa

@@ -69,7 +69,6 @@ class PMDCsc(salobj.ConfigurableCsc):
         config_dir=None,
         override="",
     ):
-
         super().__init__(
             name="PMD",
             index=index,

@@ -1,10 +1,10 @@
-import unittest
-import math
-import pathlib
 import logging
+import math
 import os
+import pathlib
+import unittest
 
-from lsst.ts import salobj, pmd
+from lsst.ts import pmd, salobj
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)

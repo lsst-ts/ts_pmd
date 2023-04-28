@@ -4,7 +4,7 @@ import asyncio
 
 from lsst.ts import salobj
 
-from . import PMDCsc
+from .csc import PMDCsc
 
 
 def execute_csc():
