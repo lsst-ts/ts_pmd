@@ -86,7 +86,3 @@ class ValidationTestCase(unittest.TestCase):
             bad_data["hub_config"][0][name] = bad_value
             with self.assertRaises(jsonschema.exceptions.ValidationError):
                 self.validator.validate(bad_data)
-
-
-if __name__ == "__main__":
-    unittest.main()

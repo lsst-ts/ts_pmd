@@ -99,7 +99,3 @@ class PMDCscTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase):
                 names="micrometer1,micrometer2,micrometer3,micrometer4,,micrometer5,,",
                 units="um",
             )
-
-
-if __name__ == "__main__":
-    unittest.main()
