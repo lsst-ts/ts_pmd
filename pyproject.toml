@@ -18,8 +18,8 @@ version = { attr = "setuptools_scm.get_version" }
 where = [ "python" ]
 
 [project.scripts]
-run_pmd = "lsst.ts.pmd.cli:execute_csc"
-command_pmd = "lsst.ts.pmd.cli:command_csc"
+run_pmd = "lsst.ts.pmd:execute_csc"
+command_pmd = "lsst.ts.pmd:command_csc"
 
 [tool.setuptools_scm]
 write_to = "python/lsst/ts/pmd/version.py"
