@@ -42,7 +42,7 @@ definitions:
         type: string
         description: The brand/type of device hub.
         enum: ["Mitutoyo"]
-    required: [telemetry_interval, devices, units,  location, host, port, hub_type]
+    required: [sal_index, telemetry_interval, devices, units,  location, host, port, hub_type]
     additionalProperties: false
 type: object
 properties:
