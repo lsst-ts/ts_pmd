@@ -7,7 +7,7 @@ PMD
 .. image:: https://img.shields.io/badge/GitHub-gray.svg
     :target: https://github.com/lsst-ts/ts_pmd
 .. image:: https://img.shields.io/badge/Jira-gray.svg
-    :target: https://jira.lsstcorp.org/issues/?jql=labels+%3D+ts_pmd
+    :target: https://jira.lsstcorp.org/issues/?jql=labels%3Dts_pmd
 .. image:: https://img.shields.io/badge/Jenkins-gray.svg
     :target: https://tssw-ci.lsst.org/job/LSST_Telescope-and-Site/job/ts_pmd/
 

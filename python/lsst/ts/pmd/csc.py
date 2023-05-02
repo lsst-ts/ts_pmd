@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-__all__ = ["PMDCsc"]
+__all__ = ["PMDCsc", "run_pmd", "command_pmd"]
 
 import asyncio
 import traceback
@@ -69,7 +69,6 @@ class PMDCsc(salobj.ConfigurableCsc):
         config_dir=None,
         override="",
     ):
-
         super().__init__(
             name="PMD",
             index=index,
@@ -177,3 +176,13 @@ class PMDCsc(salobj.ConfigurableCsc):
     def get_config_pkg():
         """Get the configuration package directory."""
         return "ts_config_ocs"
+
+
+def run_pmd():
+    """Run PMDCsc from the command line."""
+    asyncio.run(PMDCsc.amain(index=True))
+
+
+def command_pmd():
+    """Run a PMD commander from the command line."""
+    asyncio.run(salobj.CscCommander.amain(name="PMD", index=True))
