@@ -4,6 +4,13 @@
 Version History
 ===============
 
+v0.5.2
+======
+* Fix ups/ts_pmd.table to have the right dependencies.
+* Update to use ts_pre_commit_config.
+* Remove scons support.
+* ``Jenkinsfile``: use the shared library.
+
 v0.5.1
 ======
 * Fixed PMD not faulting after 3 times
