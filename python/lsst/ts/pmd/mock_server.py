@@ -21,40 +21,32 @@
 
 __all__ = ["MockServer", "MockMitutoyoHub"]
 
-import asyncio
 import logging
 import math
 
 from lsst.ts import tcpip
 
 
-class MockServer(tcpip.OneClientServer):
-    def __init__(self):
-        self.log = logging.getLogger(__name__)
+class MockServer(tcpip.OneClientReadLoopServer):
+    def __init__(self, log=None):
+        if log is None:
+            self.log = logging.getLogger(__name__)
+        else:
+            self.log = log
         self.device = MockMitutoyoHub()
-        self.read_loop_task = asyncio.Future()
         super().__init__(
             name="PMD Mock Server",
             host=tcpip.LOCAL_HOST,
             port=9999,
-            connect_callback=self.connect_callback,
             log=self.log,
         )
 
-    async def cmd_loop(self):
-        while self.connected:
-            line = await self.reader.readuntil(b"\r")
-            reply = self.device.parse_message(line)
-            self.log.debug(f"{reply=}")
-            reply = reply.encode()
-            self.log.debug(f"{reply=}")
-            self.writer.write(reply)
-            await self.writer.drain()
-
-    async def connect_callback(self, server):
-        self.read_loop_task.cancel()
-        if server.connected:
-            self.read_loop_task = asyncio.create_task(self.cmd_loop())
+    async def read_and_dispatch(self):
+        line = await self.read_str()
+        reply = self.device.parse_message(line)
+        self.log.debug(f"{reply=}")
+        self.log.debug(f"{reply=}")
+        await self.write_str(reply)
 
 
 class MockMitutoyoHub:
@@ -82,7 +74,7 @@ class MockMitutoyoHub:
 
     def parse_message(self, msg):
         self.log.info(msg)
-        msg = msg.decode().rstrip("\r\n")
+        msg = msg.rstrip("\r\n")
         self.log.info(msg)
         # raise Exception("Intentional Failure")
         if msg in self.commands.keys():
