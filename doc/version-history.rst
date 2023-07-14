@@ -4,6 +4,11 @@
 Version History
 ===============
 
+v0.6.0
+======
+* Use tcpip.Client for communication and OneClientReadLoopServer for mock server.
+* Supports python 3.11.
+
 v0.5.2
 ======
 * Fix ups/ts_pmd.table to have the right dependencies.

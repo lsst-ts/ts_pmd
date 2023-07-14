@@ -50,11 +50,8 @@ class MitutoyoComponent:
     """
 
     def __init__(self, simulation_mode, log=None):
-        self.connected = False
         self.simulation_mode = bool(simulation_mode)
         self.names = ["", "", "", "", "", "", "", ""]
-        self.reader = None
-        self.writer = None
         self.lock = asyncio.Lock()
         self.long_timeout = 30
         self.timeout = 5
@@ -62,30 +59,23 @@ class MitutoyoComponent:
             self.log = logging.getLogger(type(self).__name__)
         else:
             self.log = log.getChild(type(self).__name__)
+        self.client = tcpip.Client(host="", port=None, log=self.log)
+
+    @property
+    def connected(self):
+        return self.client.connected
 
     async def connect(self):
         """Connect to the device."""
-        async with self.lock:
-            connect_task = asyncio.open_connection(host=self.host, port=int(self.port))
-            self.reader, self.writer = await asyncio.wait_for(
-                connect_task, timeout=self.long_timeout
-            )
-            self.connected = True
-            self.log.debug("Connection to device completed")
+        self.client = tcpip.Client(
+            host=self.host, port=self.port, log=self.log, name="PMD Client"
+        )
+        await self.client.start_task
 
     async def disconnect(self):
         """Disconnect from the device."""
-        async with self.lock:
-            if self.writer is None:
-                return
-            try:
-                await tcpip.close_stream_writer(self.writer)
-            except Exception:
-                self.log.exception("Disconnect failed, continuing")
-            finally:
-                self.writer = None
-                self.reader = None
-                self.connected = False
+        await self.client.close()
+        await self.client.done_task
 
     def configure(self, config):
         """Configure the device.
@@ -125,20 +115,14 @@ class MitutoyoComponent:
         """
 
         async with self.lock:
-            if not self.connected:
+            if not self.client.connected:
                 raise RuntimeError("Not connected")
             self.log.debug(f"Message to be sent is {msg}")
-            msg = msg + "\r"
-            msg = msg.encode()
-            if self.writer is not None:
-                self.writer.write(msg)
-                await self.writer.drain()
+            await self.client.write_str(msg)
             self.log.debug("Message written")
             # It seems there might be a bit of a lag, so adding a sleep here.
             time.sleep(0.1)
-            reply = await asyncio.wait_for(
-                self.reader.readuntil(b"\r"), timeout=self.timeout
-            )
+            reply = await self.client.read_str()
             # Hub returns an empty string if a device is not read successfully
             # instead of raising a timeout exception
             if reply != b"":
@@ -175,7 +159,7 @@ class MitutoyoComponent:
                 continue
             reply = await self.send_msg(str(i + 1))
             if reply != b"\r":
-                split_reply = reply.decode().split(":")
+                split_reply = reply.split(":")
                 positions[i] = float(split_reply[-1])
                 self.log.debug(f"{positions=}")
             else:

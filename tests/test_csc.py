@@ -62,7 +62,7 @@ class PMDCscTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase):
         async with self.make_csc(
             initial_state=salobj.State.STANDBY, index=1, simulation_mode=1
         ):
-            await self.check_standard_state_transitions(enabled_commands=[])
+            await self.check_standard_state_transitions(enabled_commands=[], timeout=10)
 
     async def test_bin_script(self):
         await self.check_bin_script(
@@ -75,7 +75,7 @@ class PMDCscTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase):
         async with self.make_csc(
             initial_state=salobj.State.ENABLED, index=1, simulation_mode=1
         ):
-            position = await self.remote.tel_position.aget()
+            position = await self.remote.tel_position.aget(timeout=10)
             self.assertTrue(not math.isnan(position.position[0]))
             self.assertTrue(not math.isnan(position.position[1]))
             self.assertTrue(not math.isnan(position.position[2]))
@@ -98,4 +98,5 @@ class PMDCscTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase):
                 location="AT",
                 names="micrometer1,micrometer2,micrometer3,micrometer4,,micrometer5,,",
                 units="um",
+                timeout=10,
             )

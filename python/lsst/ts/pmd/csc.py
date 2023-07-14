@@ -137,7 +137,7 @@ class PMDCsc(salobj.ConfigurableCsc):
         """Handle the summary states."""
         if self.disabled_or_enabled:
             if self.simulation_mode and self.simulator is None:
-                self.simulator = MockServer()
+                self.simulator = MockServer(log=self.log)
                 await self.simulator.start_task
             if not self.component.connected:
                 try:
