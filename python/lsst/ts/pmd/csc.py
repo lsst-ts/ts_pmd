@@ -22,7 +22,6 @@
 __all__ = ["PMDCsc", "run_pmd", "command_pmd"]
 
 import asyncio
-import traceback
 
 from lsst.ts import salobj, utils
 
@@ -115,7 +114,10 @@ class PMDCsc(salobj.ConfigurableCsc):
             while True:
                 position, isok = await self.component.determine_channel_positions()
                 if not isok:
-                    raise IOError("Multiplexer not recovered.")
+                    await self.fault(
+                        ErrorCode.CHANNEL_RECOVERY_FAILED,
+                        report="Failed to recover multiplexer.",
+                    )
                 self.log.debug(
                     "telemetry_loop received position data, now publishing event"
                 )
@@ -124,14 +126,6 @@ class PMDCsc(salobj.ConfigurableCsc):
                 await asyncio.sleep(self.telemetry_interval)
         except asyncio.CancelledError:
             self.log.info("Telemetry loop cancelled")
-        except Exception as e:
-            err_msg = f"Telemetry loop failed. Last position value was {position}"
-            self.log.exception(err_msg)
-            await self.fault(
-                ErrorCode.CHANNEL_RECOVERY_FAILED,
-                report=f"{err_msg}: {e}",
-                traceback=traceback.format_exc(),
-            )
 
     async def handle_summary_state(self):
         """Handle the summary states."""

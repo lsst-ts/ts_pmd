@@ -71,6 +71,7 @@ class MockMitutoyoHub:
         self.commands["QU"] = self.multiplexer_recovery
         self.log = logging.getLogger(__name__)
         self.log.info(self.commands)
+        self.fail_mode = False
 
     def parse_message(self, msg):
         self.log.info(msg)
@@ -78,10 +79,13 @@ class MockMitutoyoHub:
         self.log.info(msg)
         # raise Exception("Intentional Failure")
         if msg in self.commands.keys():
-            reply = self.commands[msg](msg)
-            if reply is not None:
-                self.log.info(reply)
-                return reply
+            if not self.fail_mode:
+                reply = self.commands[msg](msg)
+                if reply is not None:
+                    self.log.info(reply)
+                    return reply
+            else:
+                return ""
         raise NotImplementedError(f"{msg} not implemented.")
 
     def get_position(self, index):

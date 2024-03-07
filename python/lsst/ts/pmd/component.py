@@ -24,7 +24,6 @@ __all__ = ["MitutoyoComponent"]
 import asyncio
 import logging
 import math
-import time
 
 from lsst.ts import tcpip
 
@@ -74,8 +73,12 @@ class MitutoyoComponent:
 
     async def disconnect(self):
         """Disconnect from the device."""
-        await self.client.close()
-        await self.client.done_task
+        try:
+            await self.client.close()
+        except Exception:
+            self.log.exception("Failed to disconnect. Close client anyway.")
+        finally:
+            self.client = tcpip.Client(host="", port=None, log=self.log)
 
     def configure(self, config):
         """Configure the device.
@@ -115,20 +118,19 @@ class MitutoyoComponent:
         """
 
         async with self.lock:
-            if not self.client.connected:
+            if not self.connected:
                 raise RuntimeError("Not connected")
             self.log.debug(f"Message to be sent is {msg}")
             await self.client.write_str(msg)
             self.log.debug("Message written")
             # It seems there might be a bit of a lag, so adding a sleep here.
-            time.sleep(0.1)
+            await asyncio.sleep(0.1)
             reply = await self.client.read_str()
             # Hub returns an empty string if a device is not read successfully
             # instead of raising a timeout exception
-            if reply != b"":
+            if reply != "":
                 self.log.debug(f"Read successful in send_msg, got {reply}")
             else:
-                reply = b"\r"
                 self.log.debug("Channel timed out or empty")
             return reply
 
@@ -151,14 +153,14 @@ class MitutoyoComponent:
         """
 
         if not self.connected:
-            raise Exception("Not connected")
+            raise RuntimeError("Not connected")
         positions = [math.nan] * len(self.names)
         for i, name in enumerate(self.names):
             # Skip the channels that have nothing configured
             if name == "":
                 continue
             reply = await self.send_msg(str(i + 1))
-            if reply != b"\r":
+            if reply != "":
                 split_reply = reply.split(":")
                 positions[i] = float(split_reply[-1])
                 self.log.debug(f"{positions=}")
@@ -200,6 +202,7 @@ class MitutoyoComponent:
         if max_resets < 0:
             raise ValueError("max_resets must be greater than or equal to 0.")
         for ntries in range(max_resets + 1):
+            self.log.info(f"{ntries=} of {max_resets=}")
             positions, isok = await self.get_channel_position()
             if isok:
                 break
@@ -207,7 +210,7 @@ class MitutoyoComponent:
             reply = await self.send_msg("SPC")
             await asyncio.sleep(5)
             self.log.debug(f"Multiplexer SPC response is: {reply}")
-            reply3 = self.send_msg("QU")
+            reply3 = await self.send_msg("QU")
             await asyncio.sleep(2)
             self.log.debug(f"{reply3=}")
         return positions, isok

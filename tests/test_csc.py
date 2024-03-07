@@ -19,6 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import asyncio
 import logging
 import math
 import os
@@ -84,6 +85,14 @@ class PMDCscTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase):
             self.assertTrue(not math.isnan(position.position[5]))
             self.assertTrue(math.isnan(position.position[6]))
             self.assertTrue(math.isnan(position.position[7]))
+
+    async def test_retry(self):
+        async with self.make_csc(
+            initial_state=salobj.State.ENABLED, index=1, simulation_mode=1
+        ):
+            self.csc.simulator.device.fail_mode = True
+            await asyncio.sleep(1)
+            await self.assert_next_summary_state(state=salobj.State.FAULT, flush=True)
 
     async def test_metadata(self):
         async with self.make_csc(

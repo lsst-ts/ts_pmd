@@ -4,6 +4,8 @@
 Version History
 ===============
 
+.. towncrier release notes start
+
 v0.6.0
 ======
 * Use tcpip.Client for communication and OneClientReadLoopServer for mock server.
