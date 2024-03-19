@@ -1,0 +1,1 @@
+Adjust Client and MockServer to terminate with carriage returns only. Remove several extraneous carriage returns being set.
