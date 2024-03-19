@@ -37,14 +37,14 @@ class MockServer(tcpip.OneClientReadLoopServer):
         super().__init__(
             name="PMD Mock Server",
             host=tcpip.LOCAL_HOST,
-            port=9999,
+            port=0,
             log=self.log,
+            terminator=b"\r",
         )
 
     async def read_and_dispatch(self):
         line = await self.read_str()
         reply = self.device.parse_message(line)
-        self.log.debug(f"{reply=}")
         self.log.debug(f"{reply=}")
         await self.write_str(reply)
 
@@ -70,27 +70,27 @@ class MockMitutoyoHub:
         self.commands["SPC"] = self.multiplexer_recovery
         self.commands["QU"] = self.multiplexer_recovery
         self.log = logging.getLogger(__name__)
-        self.log.info(self.commands)
+        self.log.debug(f"{self.commands=}")
+        self.fail_mode = False
 
     def parse_message(self, msg):
-        self.log.info(msg)
-        msg = msg.rstrip("\r\n")
-        self.log.info(msg)
-        # raise Exception("Intentional Failure")
+        self.log.debug(f"{msg=}")
         if msg in self.commands.keys():
-            reply = self.commands[msg](msg)
-            if reply is not None:
-                self.log.info(reply)
+            if not self.fail_mode:
+                reply = self.commands[msg](msg)
+                self.log.debug(f"{reply=}")
                 return reply
+            else:
+                return ""
         raise NotImplementedError(f"{msg} not implemented.")
 
     def get_position(self, index):
         slot_position = self.positions[int(index) - 1]
         self.log.info(slot_position)
         if not math.isnan(slot_position):
-            return f"{index}:{slot_position:+f}\r"
+            return f"{index}:{slot_position:+f}"
         else:
-            return "\r"
+            return ""
 
-    def multiplexer_recovery(self):
+    def multiplexer_recovery(self, something):
         return ""
