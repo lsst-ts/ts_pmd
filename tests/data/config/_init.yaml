@@ -8,6 +8,8 @@ hub_config:
       - "micrometer4"
       - ""
       - "micrometer5"
+      - ""
+      - ""
     location: "AT"
     units: "um"
     telemetry_interval: 1
