@@ -67,7 +67,11 @@ class MitutoyoComponent:
     async def connect(self):
         """Connect to the device."""
         self.client = tcpip.Client(
-            host=self.host, port=self.port, log=self.log, name="PMD Client", terminator=b"\r"
+            host=self.host,
+            port=self.port,
+            log=self.log,
+            name="PMD Client",
+            terminator=b"\r",
         )
         await self.client.start_task
 
