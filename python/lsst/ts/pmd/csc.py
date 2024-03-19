@@ -133,6 +133,7 @@ class PMDCsc(salobj.ConfigurableCsc):
             if self.simulation_mode and self.simulator is None:
                 self.simulator = MockServer(log=self.log)
                 await self.simulator.start_task
+                self.component.port = self.simulator.port
             if not self.component.connected:
                 try:
                     self.log.debug("in handle_summary_state: connecting")
@@ -146,7 +147,7 @@ class PMDCsc(salobj.ConfigurableCsc):
                 self.telemetry_task = asyncio.create_task(self.telemetry())
         else:
             self.log.debug(
-                "in handle_summary_state else: cancelling telemetry and disconnecting"
+                f"Transitioning to {self.summary_state}; cancelling telemetry loop and disconnecting."
             )
             self.telemetry_task.cancel()
             if self.component is not None:

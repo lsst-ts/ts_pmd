@@ -67,7 +67,7 @@ class MitutoyoComponent:
     async def connect(self):
         """Connect to the device."""
         self.client = tcpip.Client(
-            host=self.host, port=self.port, log=self.log, name="PMD Client"
+            host=self.host, port=self.port, log=self.log, name="PMD Client", terminator=b"\r"
         )
         await self.client.start_task
 
@@ -76,7 +76,7 @@ class MitutoyoComponent:
         try:
             await self.client.close()
         except Exception:
-            self.log.exception("Failed to disconnect. Close client anyway.")
+            self.log.exception("Failed to disconnect. Closing client anyway.")
         finally:
             self.client = tcpip.Client(host="", port=None, log=self.log)
 
@@ -126,6 +126,7 @@ class MitutoyoComponent:
             # It seems there might be a bit of a lag, so adding a sleep here.
             await asyncio.sleep(0.1)
             reply = await self.client.read_str()
+            self.log.debug(f"{reply=}")
             # Hub returns an empty string if a device is not read successfully
             # instead of raising a timeout exception
             if reply != "":
@@ -160,6 +161,7 @@ class MitutoyoComponent:
             if name == "":
                 continue
             reply = await self.send_msg(str(i + 1))
+            self.log.debug(f"{reply=}")
             if reply != "":
                 split_reply = reply.split(":")
                 positions[i] = float(split_reply[-1])
@@ -202,7 +204,7 @@ class MitutoyoComponent:
         if max_resets < 0:
             raise ValueError("max_resets must be greater than or equal to 0.")
         for ntries in range(max_resets + 1):
-            self.log.info(f"{ntries=} of {max_resets=}")
+            self.log.debug(f"{ntries=} of {max_resets=}")
             positions, isok = await self.get_channel_position()
             if isok:
                 break
