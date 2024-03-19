@@ -6,6 +6,22 @@ Version History
 
 .. towncrier release notes start
 
+ts_pmd v0.6.1 (2024-03-19)
+==========================
+
+Bugfixes
+--------
+
+- Adjust Client and MockServer to terminate with carriage returns only. Remove several extraneous carriage returns being set. (`DM-41589 <https://jira.lsstcorp.org/DM-41589>`_)
+- Improve error handling. (`DM-41589 <https://jira.lsstcorp.org/DM-41589>`_)
+
+
+Improved Documentation
+----------------------
+
+- Add Towncrier support. (`DM-41589 <https://jira.lsstcorp.org/DM-41589>`_)
+
+
 v0.6.0
 ======
 * Use tcpip.Client for communication and OneClientReadLoopServer for mock server.
