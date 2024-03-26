@@ -4,5 +4,4 @@ package = "lsst.ts.pmd"
 package_dir = "python"
 filename = "doc/version-history.rst"
 name = "ts_pmd"
-issue_format = "`{issue} <https://jira.lsstcorp.org/{issue}>`_"
-
+issue_format = "`{issue} <https://rubinobs.atlassian.net/{issue}>`_"
