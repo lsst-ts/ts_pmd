@@ -24,6 +24,7 @@ __all__ = ["MitutoyoComponent"]
 import asyncio
 import logging
 import math
+from typing import Any
 
 from lsst.ts import tcpip
 
@@ -48,23 +49,28 @@ class MitutoyoComponent:
         Whether the device is connected.
     """
 
-    def __init__(self, simulation_mode, log=None):
-        self.simulation_mode = bool(simulation_mode)
-        self.names = ["", "", "", "", "", "", "", ""]
-        self.lock = asyncio.Lock()
-        self.long_timeout = 30
-        self.timeout = 5
+    def __init__(self, simulation_mode: bool, log: None | logging.Logger=None) -> None:
+        self.simulation_mode: bool = bool(simulation_mode)
+        self.names: list[str] = ["", "", "", "", "", "", "", ""]
+        self.lock: asyncio.Lock = asyncio.Lock()
+        self.long_timeout: int = 30
+        self.timeout: int = 5
         if log is None:
             self.log = logging.getLogger(type(self).__name__)
         else:
             self.log = log.getChild(type(self).__name__)
-        self.client = tcpip.Client(host="", port=None, log=self.log)
+        self.client: tcpip.Client = tcpip.Client(host="", port=None, log=self.log)
+        self.host: None | str = None
+        self.port: None | int = None
+        self.hub_type: None | str = None
+        self.location: None | str = None
+        self.units: None | str = None
 
     @property
-    def connected(self):
+    def connected(self) -> bool:
         return self.client.connected
 
-    async def connect(self):
+    async def connect(self) -> None:
         """Connect to the device."""
         self.client = tcpip.Client(
             host=self.host,
@@ -75,7 +81,7 @@ class MitutoyoComponent:
         )
         await self.client.start_task
 
-    async def disconnect(self):
+    async def disconnect(self) -> None:
         """Disconnect from the device."""
         try:
             await self.client.close()
@@ -84,7 +90,7 @@ class MitutoyoComponent:
         finally:
             self.client = tcpip.Client(host="", port=None, log=self.log)
 
-    def configure(self, config):
+    def configure(self, config: dict[str, Any]) -> None:
         """Configure the device.
 
         Parameters
@@ -102,7 +108,7 @@ class MitutoyoComponent:
 
         self.log.debug("Configuration completed")
 
-    async def send_msg(self, msg):
+    async def send_msg(self, msg: str) -> str:
         """Send a message to the device.
 
         Parameters
@@ -139,7 +145,7 @@ class MitutoyoComponent:
                 self.log.debug("Channel timed out or empty")
             return reply
 
-    async def get_channel_position(self):
+    async def get_channel_position(self) -> tuple[list[float], bool]:
         """Get all device slot positions.
 
         Does not attempt to recover the multiplexor.
@@ -179,7 +185,7 @@ class MitutoyoComponent:
         isok = True
         return positions, isok
 
-    async def determine_channel_positions(self, max_resets=3):
+    async def determine_channel_positions(self, max_resets: int=3) -> tuple[list[float] | None, bool | None]:
         """Recovery of multiplexer when a sensor drops out.
 
         Read slot positions with reseting the multiplexer if value fails.
@@ -205,6 +211,7 @@ class MitutoyoComponent:
         # While read_error_count is less than or equal to 3 and not success
         # Continue to recover.
         # If success is True, break the loop.
+        positions = isok = None
         if max_resets < 0:
             raise ValueError("max_resets must be greater than or equal to 0.")
         for ntries in range(max_resets + 1):

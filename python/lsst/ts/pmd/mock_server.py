@@ -23,12 +23,13 @@ __all__ = ["MockServer", "MockMitutoyoHub"]
 
 import logging
 import math
+from typing import Any, Callable
 
 from lsst.ts import tcpip
 
 
 class MockServer(tcpip.OneClientReadLoopServer):
-    def __init__(self, log=None):
+    def __init__(self, log: None | logging.Logger=None) -> None:
         if log is None:
             self.log = logging.getLogger(__name__)
         else:
@@ -42,7 +43,7 @@ class MockServer(tcpip.OneClientReadLoopServer):
             terminator=b"\r",
         )
 
-    async def read_and_dispatch(self):
+    async def read_and_dispatch(self) -> None:
         line = await self.read_str()
         reply = self.device.parse_message(line)
         self.log.debug(f"{reply=}")
@@ -52,7 +53,7 @@ class MockServer(tcpip.OneClientReadLoopServer):
 class MockMitutoyoHub:
     def __init__(
         self,
-        positions=[
+        positions: list[float]=[
             0.00009,
             0.001,
             0.002,
@@ -66,14 +67,14 @@ class MockMitutoyoHub:
         self.positions = positions
         if len(self.positions) != 8:
             raise Exception("positions must contain exactly 8 values.")
-        self.commands = {str(i): self.get_position for i in range(1, 9)}
+        self.commands: dict[str, Callable[..., str]] = {str(i): self.get_position for i in range(1, 9)}
         self.commands["SPC"] = self.multiplexer_recovery
         self.commands["QU"] = self.multiplexer_recovery
         self.log = logging.getLogger(__name__)
         self.log.debug(f"{self.commands=}")
         self.fail_mode = False
 
-    def parse_message(self, msg):
+    def parse_message(self, msg: str) -> str:
         self.log.debug(f"{msg=}")
         if msg in self.commands.keys():
             if not self.fail_mode:
@@ -84,7 +85,7 @@ class MockMitutoyoHub:
                 return ""
         raise NotImplementedError(f"{msg} not implemented.")
 
-    def get_position(self, index):
+    def get_position(self, index: str) -> str:
         slot_position = self.positions[int(index) - 1]
         self.log.info(slot_position)
         if not math.isnan(slot_position):
@@ -92,5 +93,5 @@ class MockMitutoyoHub:
         else:
             return ""
 
-    def multiplexer_recovery(self, something):
+    def multiplexer_recovery(self, something: Any) -> str:
         return ""

@@ -22,8 +22,11 @@
 __all__ = ["PMDCsc", "run_pmd", "command_pmd"]
 
 import asyncio
+import pathlib
+import types
 
-from lsst.ts import salobj, utils
+from lsst.ts import salobj
+from lsst.ts import utils
 
 from . import __version__
 from .component import MitutoyoComponent
@@ -62,11 +65,11 @@ class PMDCsc(salobj.ConfigurableCsc):
 
     def __init__(
         self,
-        index,
-        simulation_mode=0,
-        initial_state=salobj.State.STANDBY,
-        config_dir=None,
-        override="",
+        index: int,
+        simulation_mode: int=0,
+        initial_state: None | salobj.State | int=salobj.State.STANDBY,
+        config_dir: None | str | pathlib.Path=None,
+        override: str="",
     ):
         super().__init__(
             name="PMD",
@@ -78,12 +81,17 @@ class PMDCsc(salobj.ConfigurableCsc):
             override=override,
         )
         self.telemetry_task = utils.make_done_future()
-        self.telemetry_interval = 1
-        self.index = index
-        self.component = None
-        self.simulator = None
+        self.telemetry_interval: int = 1
+        self.index: int = index
+        self.component: None | MitutoyoComponent = None
+        self.simulator: None | MockServer = None
 
-    async def configure(self, config):
+
+    @property
+    def connected(self) -> bool:
+        return self.component is not None and self.component.connected
+
+    async def configure(self, config: types.SimpleNamespace) -> None:
         """Configure the CSC.
 
         Parameters
@@ -97,6 +105,7 @@ class PMDCsc(salobj.ConfigurableCsc):
         ]
         if config.hub_config[self.index - 1]["hub_type"] == "Mitutoyo":
             self.component = MitutoyoComponent(self.simulation_mode, log=self.log)
+        assert self.component is not None
         self.component.configure(config.hub_config[self.index - 1])
         await self.evt_metadata.set_write(
             hubType=self.component.hub_type,
@@ -105,13 +114,15 @@ class PMDCsc(salobj.ConfigurableCsc):
             units=self.component.units,
         )
 
-    async def telemetry(self):
+    async def telemetry(self) -> None:
         """Execute the telemetry loop."""
         try:
             self.log.debug("Begin sending telemetry")
             position = None
-            breakpoint
             while True:
+                if not self.connected:
+                    raise RuntimeError("Component not connected.")
+                assert self.component is not None
                 position, isok = await self.component.determine_channel_positions()
                 if not isok:
                     await self.fault(
@@ -127,9 +138,10 @@ class PMDCsc(salobj.ConfigurableCsc):
         except asyncio.CancelledError:
             self.log.info("Telemetry loop cancelled")
 
-    async def handle_summary_state(self):
+    async def handle_summary_state(self) -> None:
         """Handle the summary states."""
         if self.disabled_or_enabled:
+            assert self.component is not None
             if self.simulation_mode and self.simulator is None:
                 self.simulator = MockServer(log=self.log)
                 await self.simulator.start_task
@@ -157,7 +169,7 @@ class PMDCsc(salobj.ConfigurableCsc):
                 await self.simulator.close()
                 self.simulator = None
 
-    async def close_tasks(self):
+    async def close_tasks(self) -> None:
         """Close the CSC for cleanup."""
         await super().close_tasks()
         self.telemetry_task.cancel()
@@ -168,16 +180,16 @@ class PMDCsc(salobj.ConfigurableCsc):
             self.simulator = None
 
     @staticmethod
-    def get_config_pkg():
+    def get_config_pkg() -> str:
         """Get the configuration package directory."""
         return "ts_config_ocs"
 
 
-def run_pmd():
+def run_pmd() -> None:
     """Run PMDCsc from the command line."""
     asyncio.run(PMDCsc.amain(index=True))
 
 
-def command_pmd():
+def command_pmd() -> None:
     """Run a PMD commander from the command line."""
     asyncio.run(salobj.CscCommander.amain(name="PMD", index=True))
