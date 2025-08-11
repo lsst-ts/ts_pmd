@@ -22,13 +22,12 @@
 import asyncio
 import logging
 import math
-import os
 import pathlib
 import unittest
 
-from lsst.ts import pmd, salobj
+from lsst.ts import pmd
+from lsst.ts import salobj
 
-logging.basicConfig()
 logger = logging.getLogger(__name__)
 
 TEST_CONFIG_DIR = pathlib.Path(__file__).parents[1].joinpath("tests", "data", "config")
@@ -39,18 +38,15 @@ CONFIGS = [
 
 
 class PMDCscTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
-        os.environ["LSST_SITE"] = "pmd"
-        return super().setUp()
 
     def basic_make_csc(
         self,
-        index,
-        initial_state,
-        config_dir=TEST_CONFIG_DIR,
-        simulation_mode=0,
-        override="",
-    ):
+        index: int,
+        initial_state: salobj.State | int,
+        config_dir: str | pathlib.Path=TEST_CONFIG_DIR,
+        simulation_mode: int=0,
+        override: str="",
+    ) -> pmd.PMDCsc:
         return pmd.PMDCsc(
             initial_state=initial_state,
             index=index,
@@ -59,20 +55,20 @@ class PMDCscTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase):
             override=override,
         )
 
-    async def test_standard_state_transitions(self):
+    async def test_standard_state_transitions(self) -> None:
         async with self.make_csc(
             initial_state=salobj.State.STANDBY, index=1, simulation_mode=1
         ):
             await self.check_standard_state_transitions(enabled_commands=[], timeout=10)
 
-    async def test_bin_script(self):
+    async def test_bin_script(self) -> None:
         await self.check_bin_script(
             name="PMD",
             exe_name="run_pmd",
             index=1,
         )
 
-    async def test_telemetry(self):
+    async def test_telemetry(self) -> None:
         async with self.make_csc(
             initial_state=salobj.State.ENABLED, index=1, simulation_mode=1
         ):
@@ -86,7 +82,7 @@ class PMDCscTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase):
             self.assertTrue(math.isnan(position.position[6]))
             self.assertTrue(math.isnan(position.position[7]))
 
-    async def test_retry(self):
+    async def test_retry(self) -> None:
         async with self.make_csc(
             initial_state=salobj.State.ENABLED, index=1, simulation_mode=1
         ):
@@ -94,7 +90,7 @@ class PMDCscTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase):
             await asyncio.sleep(1)
             await self.assert_next_summary_state(state=salobj.State.FAULT, flush=True)
 
-    async def test_metadata(self):
+    async def test_metadata(self) -> None:
         async with self.make_csc(
             initial_state=salobj.State.DISABLED,
             index=1,

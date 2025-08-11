@@ -27,11 +27,11 @@ from lsst.ts.pmd.config_schema import CONFIG_SCHEMA
 
 
 class ValidationTestCase(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.schema = CONFIG_SCHEMA
         self.validator = salobj.DefaultingValidator(schema=self.schema)
 
-    def test_all_specified(self):
+    def test_all_specified(self) -> None:
         data = {
             "hub_config": [
                 {
@@ -52,7 +52,7 @@ class ValidationTestCase(unittest.TestCase):
         for field, value in data.items():
             self.assertEqual(result[field], value)
 
-    def test_invalid_configs(self):
+    def test_invalid_configs(self) -> None:
         good_data = {
             "hub_config": [
                 {
