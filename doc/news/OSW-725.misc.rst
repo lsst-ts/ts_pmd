@@ -1,1 +1,0 @@
-Added mypy type hints as well switched to ruff instead of black, flake8 and isort.

@@ -1,1 +1,0 @@
-Change ts-idl to ts-xml in conda/meta.yaml
