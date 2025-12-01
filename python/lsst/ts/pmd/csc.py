@@ -66,10 +66,10 @@ class PMDCsc(salobj.ConfigurableCsc):
     def __init__(
         self,
         index: int,
-        simulation_mode: int=0,
-        initial_state: None | salobj.State | int=salobj.State.STANDBY,
-        config_dir: None | str | pathlib.Path=None,
-        override: str="",
+        simulation_mode: int = 0,
+        initial_state: None | salobj.State | int = salobj.State.STANDBY,
+        config_dir: None | str | pathlib.Path = None,
+        override: str = "",
     ):
         super().__init__(
             name="PMD",
@@ -86,7 +86,6 @@ class PMDCsc(salobj.ConfigurableCsc):
         self.component: None | MitutoyoComponent = None
         self.simulator: None | MockServer = None
 
-
     @property
     def connected(self) -> bool:
         return self.component is not None and self.component.connected
@@ -100,9 +99,7 @@ class PMDCsc(salobj.ConfigurableCsc):
             The configuration object.
         """
         self.log.info(config)
-        self.telemetry_interval = config.hub_config[self.index - 1][
-            "telemetry_interval"
-        ]
+        self.telemetry_interval = config.hub_config[self.index - 1]["telemetry_interval"]
         if config.hub_config[self.index - 1]["hub_type"] == "Mitutoyo":
             self.component = MitutoyoComponent(self.simulation_mode, log=self.log)
         assert self.component is not None
@@ -129,9 +126,7 @@ class PMDCsc(salobj.ConfigurableCsc):
                         ErrorCode.CHANNEL_RECOVERY_FAILED,
                         report="Failed to recover multiplexer.",
                     )
-                self.log.debug(
-                    "telemetry_loop received position data, now publishing event"
-                )
+                self.log.debug("telemetry_loop received position data, now publishing event")
                 await self.tel_position.set_write(position=position)
                 position = None  # reset so it's easier to debug exceptions
                 await asyncio.sleep(self.telemetry_interval)
@@ -151,9 +146,7 @@ class PMDCsc(salobj.ConfigurableCsc):
                     self.log.debug("in handle_summary_state: connecting")
                     await self.component.connect()
                 except Exception as e:
-                    self.log.error(
-                        f"Connection failed. {self.component.host=} {self.component.port=}: {e!r}"
-                    )
+                    self.log.error(f"Connection failed. {self.component.host=} {self.component.port=}: {e!r}")
                     await self.fault(ErrorCode.HARDWARE_CONNECTION_FAILED, e.args)
             if self.telemetry_task.done():
                 self.telemetry_task = asyncio.create_task(self.telemetry())
