@@ -29,7 +29,7 @@ from lsst.ts import tcpip
 
 
 class MockServer(tcpip.OneClientReadLoopServer):
-    def __init__(self, log: None | logging.Logger=None) -> None:
+    def __init__(self, log: None | logging.Logger = None) -> None:
         if log is None:
             self.log = logging.getLogger(__name__)
         else:
@@ -53,7 +53,7 @@ class MockServer(tcpip.OneClientReadLoopServer):
 class MockMitutoyoHub:
     def __init__(
         self,
-        positions: list[float]=[
+        positions: list[float] = [
             0.00009,
             0.001,
             0.002,

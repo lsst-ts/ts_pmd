@@ -49,7 +49,7 @@ class MitutoyoComponent:
         Whether the device is connected.
     """
 
-    def __init__(self, simulation_mode: bool, log: None | logging.Logger=None) -> None:
+    def __init__(self, simulation_mode: bool, log: None | logging.Logger = None) -> None:
         self.simulation_mode: bool = bool(simulation_mode)
         self.names: list[str] = ["", "", "", "", "", "", "", ""]
         self.lock: asyncio.Lock = asyncio.Lock()
@@ -185,7 +185,9 @@ class MitutoyoComponent:
         isok = True
         return positions, isok
 
-    async def determine_channel_positions(self, max_resets: int=3) -> tuple[list[float] | None, bool | None]:
+    async def determine_channel_positions(
+        self, max_resets: int = 3
+    ) -> tuple[list[float] | None, bool | None]:
         """Recovery of multiplexer when a sensor drops out.
 
         Read slot positions with reseting the multiplexer if value fails.

@@ -38,14 +38,13 @@ CONFIGS = [
 
 
 class PMDCscTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase):
-
     def basic_make_csc(
         self,
         index: int,
         initial_state: salobj.State | int,
-        config_dir: str | pathlib.Path=TEST_CONFIG_DIR,
-        simulation_mode: int=0,
-        override: str="",
+        config_dir: str | pathlib.Path = TEST_CONFIG_DIR,
+        simulation_mode: int = 0,
+        override: str = "",
     ) -> pmd.PMDCsc:
         return pmd.PMDCsc(
             initial_state=initial_state,
@@ -56,9 +55,7 @@ class PMDCscTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_standard_state_transitions(self) -> None:
-        async with self.make_csc(
-            initial_state=salobj.State.STANDBY, index=1, simulation_mode=1
-        ):
+        async with self.make_csc(initial_state=salobj.State.STANDBY, index=1, simulation_mode=1):
             await self.check_standard_state_transitions(enabled_commands=[], timeout=10)
 
     async def test_bin_script(self) -> None:
@@ -69,9 +66,7 @@ class PMDCscTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_telemetry(self) -> None:
-        async with self.make_csc(
-            initial_state=salobj.State.ENABLED, index=1, simulation_mode=1
-        ):
+        async with self.make_csc(initial_state=salobj.State.ENABLED, index=1, simulation_mode=1):
             position = await self.remote.tel_position.aget(timeout=10)
             self.assertTrue(not math.isnan(position.position[0]))
             self.assertTrue(not math.isnan(position.position[1]))
@@ -83,9 +78,7 @@ class PMDCscTestCase(salobj.BaseCscTestCase, unittest.IsolatedAsyncioTestCase):
             self.assertTrue(math.isnan(position.position[7]))
 
     async def test_retry(self) -> None:
-        async with self.make_csc(
-            initial_state=salobj.State.ENABLED, index=1, simulation_mode=1
-        ):
+        async with self.make_csc(initial_state=salobj.State.ENABLED, index=1, simulation_mode=1):
             self.csc.simulator.device.fail_mode = True
             await asyncio.sleep(1)
             await self.assert_next_summary_state(state=salobj.State.FAULT, flush=True)
