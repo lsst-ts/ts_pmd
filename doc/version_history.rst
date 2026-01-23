@@ -6,6 +6,32 @@ Version History
 
 .. towncrier release notes start
 
+v0.6.3 (2026-01-22)
+===================
+
+Other Changes and Additions
+---------------------------
+
+- Added python version to build string for conda package. (`OSW-1484 <https://rubinobs.atlassian.net//browse/OSW-1484>`_)
+
+
+v0.6.2 (2025-08-12)
+===================
+
+Bug Fixes
+---------
+
+- Update ts-conda-build to 0.4. (`DM-43486 <https://rubinobs.atlassian.net//browse/DM-43486>`_)
+- Change ts-idl to ts-xml in conda/meta.yaml (`DM-49653 <https://rubinobs.atlassian.net//browse/DM-49653>`_)
+- Fixed version field generation. (`OSW-725 <https://rubinobs.atlassian.net//browse/OSW-725>`_)
+
+
+Other Changes and Additions
+---------------------------
+
+- Added mypy type hints as well switched to ruff instead of black, flake8 and isort. (`OSW-725 <https://rubinobs.atlassian.net//browse/OSW-725>`_)
+
+
 ts_pmd v0.6.1 (2024-03-19)
 ==========================
 
